@@ -33,8 +33,8 @@ fn compute_ray(
             let scattered = h.material.scatter(ray, &h, rng);
             match scattered {
                 Some(s) => compute_ray(&s.ray, world, rng, max_depth - 1) * s.attentuation,
-                None => Color3::new(0., 0., 0.)
-            }   
+                None => Color3::new(0., 0., 0.),
+            }
         }
         None => {
             // If the ray hits nothing, return a sky colour

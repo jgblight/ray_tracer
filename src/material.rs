@@ -41,16 +41,15 @@ impl Material for LambertianMaterial {
     }
 }
 
-
 pub struct MirrorMaterial {
     pub albedo: Color3,
-    pub fuzziness: f64
+    pub fuzziness: f64,
 }
 
 impl Material for MirrorMaterial {
     fn scatter(&self, ray: &Ray, hit: &Hit, rng: &mut ThreadRng) -> Option<ScatteredHit> {
         let reflected = ray.direction.reflect(hit.normal);
-        let bounce_direction = reflected + Vector3::rand_unit(rng)*self.fuzziness;
+        let bounce_direction = reflected + Vector3::rand_unit(rng) * self.fuzziness;
         if bounce_direction.dot(hit.normal) > 0. {
             let bounce_ray = Ray::new(hit.point, bounce_direction);
             Some(ScatteredHit::new(bounce_ray, self.albedo))

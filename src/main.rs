@@ -41,7 +41,10 @@ fn main() -> io::Result<()> {
     let red_lambert = LambertianMaterial {
         albedo: Color3::new(0.99, 0., 0.),
     };
-    let mirror = MirrorMaterial { albedo: Color3::new(0.8, 0.8, 0.8), fuzziness: 0.1 };
+    let mirror = MirrorMaterial {
+        albedo: Color3::new(0.8, 0.8, 0.8),
+        fuzziness: 0.1,
+    };
     let ground = Sphere {
         center: Point3::new(0., -100.5, -1.),
         radius: 100.,

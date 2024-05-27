@@ -156,7 +156,7 @@ impl Vector3 {
     }
 
     pub fn reflect(self, normal: Self) -> Self {
-        self - normal*2.*self.dot(normal)
+        self - normal * 2. * self.dot(normal)
     }
 }
 
