@@ -7,7 +7,7 @@ use crate::{
     vector::{Color3, Point3, Vector3},
 };
 
-const MAX_BOUNCE_DEPTH: usize = 10;
+const MAX_BOUNCE_DEPTH: usize = 20;
 
 // Resolve the color returned by a single ray by simulating it bouncing and scattered off objects in the scene
 fn compute_ray(

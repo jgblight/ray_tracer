@@ -3,7 +3,7 @@ mod material;
 mod ray;
 mod render;
 mod vector;
-use material::{LambertianMaterial, MirrorMaterial};
+use material::{DialectricMaterial, LambertianMaterial, MirrorMaterial};
 use render::{Camera, Canvas};
 use vector::Color3;
 
@@ -35,11 +35,11 @@ fn main() -> io::Result<()> {
 
     let mut world = World::new();
 
-    let grey_lambert = LambertianMaterial {
-        albedo: Color3::new(0.5, 0.5, 0.5),
+    let ground_material = LambertianMaterial {
+        albedo: Color3::new(0.8, 0.8, 0.),
     };
     let red_lambert = LambertianMaterial {
-        albedo: Color3::new(0.99, 0., 0.),
+        albedo: Color3::new(0.7, 0.2, 0.2),
     };
     let mirror = MirrorMaterial {
         albedo: Color3::new(0.8, 0.8, 0.8),
@@ -48,11 +48,11 @@ fn main() -> io::Result<()> {
     let ground = Sphere {
         center: Point3::new(0., -100.5, -1.),
         radius: 100.,
-        material: &grey_lambert,
+        material: &ground_material,
     };
     world.add(&ground);
     let sphere = Sphere {
-        center: Point3::new(0., 0., -1.),
+        center: Point3::new(0., 0., -1.2),
         radius: 0.5,
         material: &mirror,
     };
@@ -63,6 +63,16 @@ fn main() -> io::Result<()> {
         material: &red_lambert,
     };
     world.add(&sphere2);
+
+    let glass = DialectricMaterial {
+        refractive_index: 1.5,
+    };
+    let sphere3 = Sphere {
+        center: Point3::new(0.3, -0.3, -0.7),
+        radius: 0.15,
+        material: &glass,
+    };
+    world.add(&sphere3);
 
     let camera = Camera::new(
         ASPECT_RATIO,
