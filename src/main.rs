@@ -3,7 +3,7 @@ mod material;
 mod ray;
 mod render;
 mod vector;
-use material::{DialectricMaterial, LambertianMaterial, MirrorMaterial};
+use material::{DialectricMaterial, LambertianMaterial, Material, MirrorMaterial};
 use render::{Camera, Canvas};
 use vector::Color3;
 
@@ -33,13 +33,36 @@ fn write_image(stream: &mut dyn io::Write, canvas: &Canvas) -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
-    let mut stream = io::stdout();
+    let camera = Camera::new(
+        ASPECT_RATIO,
+        IMAGE_HEIGHT,
+        VERTICAL_FOV,
+        Point3::new(-1., 2., 1.),
+        Point3::new(0., 0., 0.),
+        DEFOCUS_ANGLE,
+        FOCUS_DISTANCE,
+        PIXEL_SAMPLES,
+    );
 
+    let mut rng = rand::thread_rng();
+    let mut stream = io::stdout();
     let mut world = World::new();
 
     let ground_material = LambertianMaterial {
         albedo: Color3::new(0.8, 0.8, 0.),
     };
+    let ground = Sphere {
+        center: Point3::new(0., -1000., -1.),
+        radius: 1000.,
+        material: &ground_material,
+    };
+    world.add(&ground);
+
+    let mut materials : Vec<Box<dyn Material>> = Vec::new();
+    let mut spheres : Vec<Sphere> = Vec::new();
+
+    
+
     let red_lambert = LambertianMaterial {
         albedo: Color3::new(0.7, 0.2, 0.2),
     };
@@ -47,12 +70,7 @@ fn main() -> io::Result<()> {
         albedo: Color3::new(0.8, 0.8, 0.8),
         fuzziness: 0.1,
     };
-    let ground = Sphere {
-        center: Point3::new(0., -100.5, -1.),
-        radius: 100.,
-        material: &ground_material,
-    };
-    world.add(&ground);
+
     let sphere = Sphere {
         center: Point3::new(0., 0., -1.2),
         radius: 0.5,
@@ -76,17 +94,7 @@ fn main() -> io::Result<()> {
     };
     world.add(&sphere3);
 
-    let camera = Camera::new(
-        ASPECT_RATIO,
-        IMAGE_HEIGHT,
-        VERTICAL_FOV,
-        Point3::new(-1., 2., 1.),
-        Point3::new(0., 0., -1.),
-        DEFOCUS_ANGLE,
-        FOCUS_DISTANCE,
-        PIXEL_SAMPLES,
-    );
-    let mut rng = rand::thread_rng();
+
 
     let canvas = camera.draw(&world, &mut rng);
     write_image(&mut stream, &canvas)?;
