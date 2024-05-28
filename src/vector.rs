@@ -3,7 +3,7 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-use rand::Rng;
+use rand::{rngs::ThreadRng, Rng};
 
 const TWO_PI: f64 = 2. * std::f64::consts::PI;
 const EPSILON: f64 = 1e-8;
@@ -157,6 +157,22 @@ impl Vector3 {
 
     pub fn reflect(self, normal: Self) -> Self {
         self - normal * 2. * self.dot(normal)
+    }
+
+    pub fn random(rng: &mut ThreadRng) -> Vector3 {
+        Self::new(
+            rng.gen_range(0. ..1.),
+            rng.gen_range(0. ..1.),
+            rng.gen_range(0. ..1.),
+        )
+    }
+
+    pub fn random_range(rng: &mut ThreadRng, min: f64, max: f64) -> Vector3 {
+        Self::new(
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+        )
     }
 }
 

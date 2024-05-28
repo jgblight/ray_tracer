@@ -11,20 +11,20 @@ pub struct Hit<'a> {
     pub point: Point3,
     pub normal: Vector3,
     pub distance: f64,
-    pub material: &'a dyn Material,
+    pub material: &'a Box<dyn Material>,
 }
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, range: &Range<f64>) -> Option<Hit>;
 }
 
-pub struct Sphere<'a> {
+pub struct Sphere {
     pub center: Point3,
     pub radius: f64,
-    pub material: &'a dyn Material,
+    pub material: Box<dyn Material>,
 }
 
-impl<'a> Hittable for Sphere<'a> {
+impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, range: &Range<f64>) -> Option<Hit> {
         // Analytically solve for the intersection between the ray and the surface of these sphere
         let sphere_to_origin = ray.origin - self.center;
@@ -54,27 +54,27 @@ impl<'a> Hittable for Sphere<'a> {
             point: point,
             normal: normal,
             distance: t,
-            material: self.material,
+            material: &self.material,
         };
         Some(intersection)
     }
 }
 
-pub struct World<'a> {
-    shapes: Vec<&'a dyn Hittable>,
+pub struct World {
+    shapes: Vec<Box<dyn Hittable>>,
 }
 
-impl<'a> World<'a> {
+impl World {
     pub fn new() -> Self {
         Self { shapes: Vec::new() }
     }
 
-    pub fn add(&mut self, elem: &'a dyn Hittable) {
+    pub fn add(&mut self, elem: Box<dyn Hittable>) {
         self.shapes.push(elem);
     }
 }
 
-impl Hittable for World<'_> {
+impl Hittable for World {
     fn hit(&self, ray: &Ray, range: &Range<f64>) -> Option<Hit> {
         // For all objects in the world, return the valid hit that is closes to the camera
         let mut closest_hit: Option<Hit> = None;
