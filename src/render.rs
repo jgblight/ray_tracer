@@ -1,5 +1,10 @@
 use rand::{rngs::ThreadRng, Rng};
-use std::{collections::HashMap, ops::Range};
+use std::{
+    collections::HashMap,
+    format_args,
+    io::{self, Write},
+    ops::Range,
+};
 
 use crate::{
     hittable::Hittable,
@@ -8,6 +13,7 @@ use crate::{
 };
 
 const MAX_BOUNCE_DEPTH: usize = 20;
+const TWO_PI: f64 = 2. * std::f64::consts::PI;
 
 // Resolve the color returned by a single ray by simulating it bouncing and scattered off objects in the scene
 fn compute_ray(
@@ -48,17 +54,15 @@ fn compute_ray(
 // We define the coordinate space so that x is right, y is up and the viewport is in the negative z direction from the camera
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Camera {
-    aspect_ratio: f64,
     image_height: u32,
     image_width: u32,
-
-    focal_length: f64, // distance from camera to viewport
     camera_center: Point3,
-
     pixel_delta_u: Vector3,
     pixel_delta_v: Vector3,
-
     pixel_00: Vector3,
+    defocus_angle: f64,
+    defocus_disk_u: Vector3,
+    defocus_disk_v: Vector3,
     samples: usize,
 }
 
@@ -66,37 +70,48 @@ impl Camera {
     pub fn new(
         aspect_ratio: f64,
         image_height: u32,
-        viewport_height: f64,
-        focal_length: f64,
+        vertical_fov: f64,
+        camera_center: Point3,
+        camera_lookat: Point3,
+        defocus_angle: f64,
+        focus_distance: f64,
         samples: usize,
     ) -> Self {
         let image_width = (image_height as f64 * aspect_ratio) as u32;
-        let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
 
         // Viewport setup
-        let camera_center = Point3::new(0., 0., 0.);
-        let viewport_u = Vector3::new(viewport_width, 0., 0.); // vector along width of viewport
-        let viewport_v = Vector3::new(0., -viewport_height, 0.); // vector along height of viewport
+        // compute viewport based on focal length and FOV
+        let fov_theta = vertical_fov.to_radians();
+        let viewport_height = 2. * (fov_theta / 2.).tan() * focus_distance;
+        let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
+
+        // Comput a coordinate basis for the camera based on the direction it's pointing
+        let up = Vector3::new(0., 1., 0.);
+        let camera_basis_w = (camera_center - camera_lookat).unit();
+        let camera_basis_u = up.cross(camera_basis_w).unit();
+        let camera_basis_v = camera_basis_w.cross(camera_basis_u).unit();
+
+        let viewport_u = camera_basis_u * viewport_width; // vector along width of viewport
+        let viewport_v = -camera_basis_v * viewport_height; // vector down height of viewport
 
         // The viewport is subdivided into pixels, where the color of the pixel is determined by the ray drawn through its center
         let pixel_delta_u = viewport_u / image_width as f64;
         let pixel_delta_v = viewport_v / image_height as f64;
 
         // Find upper left corner of viewport of (-V_u / 2, V_v / 2)
-        let viewport_origin = camera_center
-            - Vector3::new(0., 0., focal_length)
-            - (viewport_u / 2.)
-            - (viewport_v / 2.);
-        let pixel_00 = viewport_origin + (pixel_delta_u / 2.) + (pixel_delta_v / 2.);
+        let viewport_origin =
+            camera_center - camera_basis_w * focus_distance - (viewport_u / 2.) - (viewport_v / 2.);
+        let defocus_disk_radius = (defocus_angle / 2.).to_radians().tan() * focus_distance;
         Self {
-            aspect_ratio,
             image_height,
             image_width,
-            focal_length,
             camera_center,
             pixel_delta_u,
             pixel_delta_v,
-            pixel_00,
+            pixel_00: viewport_origin + (pixel_delta_u / 2.) + (pixel_delta_v / 2.),
+            defocus_angle,
+            defocus_disk_u: camera_basis_u * defocus_disk_radius,
+            defocus_disk_v: camera_basis_v * defocus_disk_radius,
             samples,
         }
     }
@@ -112,16 +127,28 @@ impl Camera {
         canvas
     }
 
+    // Get a random point from the virtual lens to simulate depth-of-field
+    fn sample_defocus_disk(self, rng: &mut ThreadRng) -> Point3 {
+        if self.defocus_angle <= 0. {
+            return self.camera_center;
+        };
+        let theta = rng.gen_range(0. ..TWO_PI);
+        let r = rng.gen_range(0. ..1.);
+        self.camera_center
+            + (self.defocus_disk_u * theta.cos() + self.defocus_disk_v * theta.sin()) * r
+    }
+
     fn draw_pixel(self, i: u32, j: u32, world: &dyn Hittable, rng: &mut ThreadRng) -> Color3 {
         // Sample a collection of rays within the pixel and take the average color
         let pixel_center =
             self.pixel_00 + (self.pixel_delta_u * i as f64) + (self.pixel_delta_v * j as f64);
         let mut color = Color3::new(0., 0., 0.);
         for _ in 0..self.samples {
+            let ray_origin = self.sample_defocus_disk(rng);
             let pixel_offset = (self.pixel_delta_u * rng.gen_range(-0.5..0.5))
                 + (self.pixel_delta_v * rng.gen_range(-0.5..0.5));
-            let ray_direction = pixel_center + pixel_offset - self.camera_center;
-            let ray = Ray::new(self.camera_center, ray_direction);
+            let ray_direction = pixel_center + pixel_offset - ray_origin;
+            let ray = Ray::new(ray_origin, ray_direction);
             color += compute_ray(&ray, world, rng, MAX_BOUNCE_DEPTH);
         }
         color /= self.samples as f64;

@@ -16,9 +16,11 @@ use std::io::{self};
 const ASPECT_RATIO: f64 = 16. / 9.;
 const IMAGE_HEIGHT: u32 = 400;
 
-const FOCAL_LENGTH: f64 = 1.;
-const VIEWPORT_HEIGHT: f64 = 2.;
+const VERTICAL_FOV: f64 = 50.;
 const PIXEL_SAMPLES: usize = 100;
+
+const FOCUS_DISTANCE: f64 = 3.; // Controls distance of virtual lens from focus plane
+const DEFOCUS_ANGLE: f64 = 0.6; // Controls size of virtual lens
 
 fn write_image(stream: &mut dyn io::Write, canvas: &Canvas) -> io::Result<()> {
     stream.write_all(format!("P3\n{} {}\n255\n", canvas.width, canvas.height).as_bytes())?;
@@ -77,8 +79,11 @@ fn main() -> io::Result<()> {
     let camera = Camera::new(
         ASPECT_RATIO,
         IMAGE_HEIGHT,
-        VIEWPORT_HEIGHT,
-        FOCAL_LENGTH,
+        VERTICAL_FOV,
+        Point3::new(-1., 2., 1.),
+        Point3::new(0., 0., -1.),
+        DEFOCUS_ANGLE,
+        FOCUS_DISTANCE,
         PIXEL_SAMPLES,
     );
     let mut rng = rand::thread_rng();
